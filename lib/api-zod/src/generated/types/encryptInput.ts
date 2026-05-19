@@ -6,11 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { EncryptInputAlgorithm } from './encryptInputAlgorithm';
-import type { EncryptInputOutputFormat } from './encryptInputOutputFormat';
 
 export interface EncryptInput {
   algorithm: EncryptInputAlgorithm;
   /** @minLength 1 */
   encryptionKey: string;
-  outputFormat: EncryptInputOutputFormat;
+  /**
+     * Output file extension, e.g. .enc, .cipher, .locked, or any custom extension
+     * @minLength 2
+     */
+  outputFormat: string;
 }

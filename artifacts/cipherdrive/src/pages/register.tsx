@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { useLocation, Link } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -38,7 +39,7 @@ export default function Register() {
   const watchPassword = form.watch("password");
 
   // Calculate password strength
-  useState(() => {
+  useEffect(() => {
     let strength = 0;
     if (watchPassword.length > 7) strength += 25;
     if (watchPassword.match(/[a-z]+/)) strength += 25;

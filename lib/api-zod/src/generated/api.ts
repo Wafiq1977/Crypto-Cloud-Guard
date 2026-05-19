@@ -81,7 +81,7 @@ export const GetCurrentUserResponse = zod.object({
 export const ListFilesQueryParams = zod.object({
   "search": zod.coerce.string().optional(),
   "algorithm": zod.coerce.string().optional(),
-  "status": zod.enum(['encrypted', 'decrypted', 'all']).optional()
+  "status": zod.enum(['uploaded', 'encrypted', 'decrypted', 'all']).optional()
 })
 
 export const ListFilesResponseItem = zod.object({
@@ -169,12 +169,14 @@ export const EncryptFileParams = zod.object({
 })
 
 
+export const encryptFileBodyOutputFormatMin = 2;
+
 
 
 export const EncryptFileBody = zod.object({
   "algorithm": zod.enum(['AES-256', 'RSA', 'Caesar', 'Vigenere', 'RailFence', 'SHA256', 'HybridAES-RSA']),
   "encryptionKey": zod.string().min(1),
-  "outputFormat": zod.enum(['.enc', '.cipher', '.locked'])
+  "outputFormat": zod.string().min(encryptFileBodyOutputFormatMin).describe('Output file extension, e.g. .enc, .cipher, .locked, or any custom extension')
 })
 
 export const EncryptFileResponse = zod.object({

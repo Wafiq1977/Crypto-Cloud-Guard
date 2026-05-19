@@ -15,7 +15,6 @@ export * from './encryptedFile';
 export * from './encryptedFileStatus';
 export * from './encryptInput';
 export * from './encryptInputAlgorithm';
-export * from './encryptInputOutputFormat';
 export * from './errorResponse';
 export * from './fileUpdate';
 export * from './healthStatus';

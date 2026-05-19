@@ -31,7 +31,7 @@ export default function Decrypt() {
   );
 
   const decryptMutation = useDecryptFile();
-  const { refetch: downloadRefetch, isFetching: isDownloading } = useDownloadFile(decryptedFileId!, { query: { enabled: false } });
+  const { refetch: downloadRefetch, isFetching: isDownloading } = useDownloadFile(decryptedFileId!, { query: { enabled: false, queryKey: ["/api/files", decryptedFileId, "download"] } });
 
   const form = useForm<DecryptForm>({
     resolver: zodResolver(decryptSchema),

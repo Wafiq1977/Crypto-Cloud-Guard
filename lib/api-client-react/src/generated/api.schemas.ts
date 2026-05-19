@@ -90,20 +90,15 @@ export const EncryptInputAlgorithm = {
   'HybridAES-RSA': 'HybridAES-RSA',
 } as const;
 
-export type EncryptInputOutputFormat = typeof EncryptInputOutputFormat[keyof typeof EncryptInputOutputFormat];
-
-
-export const EncryptInputOutputFormat = {
-  enc: '.enc',
-  cipher: '.cipher',
-  locked: '.locked',
-} as const;
-
 export interface EncryptInput {
   algorithm: EncryptInputAlgorithm;
   /** @minLength 1 */
   encryptionKey: string;
-  outputFormat: EncryptInputOutputFormat;
+  /**
+     * Output file extension, e.g. .enc, .cipher, .locked, or any custom extension
+     * @minLength 2
+     */
+  outputFormat: string;
 }
 
 export interface DecryptInput {
@@ -162,6 +157,7 @@ export type ListFilesStatus = typeof ListFilesStatus[keyof typeof ListFilesStatu
 
 
 export const ListFilesStatus = {
+  uploaded: 'uploaded',
   encrypted: 'encrypted',
   decrypted: 'decrypted',
   all: 'all',

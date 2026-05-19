@@ -10,6 +10,7 @@ export type ListFilesStatus = typeof ListFilesStatus[keyof typeof ListFilesStatu
 
 
 export const ListFilesStatus = {
+  uploaded: 'uploaded',
   encrypted: 'encrypted',
   decrypted: 'decrypted',
   all: 'all',
