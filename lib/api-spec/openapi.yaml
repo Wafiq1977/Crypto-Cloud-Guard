@@ -3,20 +3,27 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: CipherDrive API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: files
+    description: File management operations
+  - name: history
+    description: Activity history
+  - name: dashboard
+    description: Dashboard statistics
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +31,324 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with credentials
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /files:
+    get:
+      operationId: listFiles
+      tags: [files]
+      summary: List files for current user
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: algorithm
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [encrypted, decrypted, all]
+      responses:
+        "200":
+          description: List of files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EncryptedFile"
+
+  /files/{id}:
+    get:
+      operationId: getFile
+      tags: [files]
+      summary: Get file details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: File details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EncryptedFile"
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    patch:
+      operationId: renameFile
+      tags: [files]
+      summary: Rename a file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FileUpdate"
+      responses:
+        "200":
+          description: File renamed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EncryptedFile"
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+    delete:
+      operationId: deleteFile
+      tags: [files]
+      summary: Delete a file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: File deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /files/{id}/encrypt:
+    post:
+      operationId: encryptFile
+      tags: [files]
+      summary: Encrypt a file with chosen algorithm
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EncryptInput"
+      responses:
+        "200":
+          description: File encrypted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EncryptedFile"
+        "400":
+          description: Encryption failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /files/{id}/decrypt:
+    post:
+      operationId: decryptFile
+      tags: [files]
+      summary: Decrypt an encrypted file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DecryptInput"
+      responses:
+        "200":
+          description: File decrypted and download token returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadToken"
+        "400":
+          description: Decryption failed (wrong key)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /files/{id}/download:
+    get:
+      operationId: downloadFile
+      tags: [files]
+      summary: Get download URL for an encrypted file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Download token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownloadToken"
+        "404":
+          description: File not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /history:
+    get:
+      operationId: listHistory
+      tags: [history]
+      summary: Get activity history for current user
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Activity history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/HistoryEntry"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard statistics for current user
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +359,196 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+
+    RegisterInput:
+      type: object
+      required: [username, email, password]
+      properties:
+        username:
+          type: string
+          minLength: 3
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    User:
+      type: object
+      required: [id, username, email, createdAt, storageUsed, storageQuota]
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        storageUsed:
+          type: integer
+          description: Bytes used
+        storageQuota:
+          type: integer
+          description: Total quota in bytes
+
+    AuthResponse:
+      type: object
+      required: [user, token]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+
+    EncryptedFile:
+      type: object
+      required: [id, originalName, fileSize, status, createdAt]
+      properties:
+        id:
+          type: integer
+        originalName:
+          type: string
+        encryptedName:
+          type: ["string", "null"]
+        algorithm:
+          type: ["string", "null"]
+        outputFormat:
+          type: ["string", "null"]
+        fileSize:
+          type: integer
+        status:
+          type: string
+          enum: [uploaded, encrypted, decrypted]
+        storagePath:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    FileUpdate:
+      type: object
+      properties:
+        originalName:
+          type: string
+          minLength: 1
+
+    EncryptInput:
+      type: object
+      required: [algorithm, encryptionKey, outputFormat]
+      properties:
+        algorithm:
+          type: string
+          enum:
+            - AES-256
+            - RSA
+            - Caesar
+            - Vigenere
+            - RailFence
+            - SHA256
+            - HybridAES-RSA
+        encryptionKey:
+          type: string
+          minLength: 1
+        outputFormat:
+          type: string
+          enum: [.enc, .cipher, .locked]
+
+    DecryptInput:
+      type: object
+      required: [encryptionKey]
+      properties:
+        encryptionKey:
+          type: string
+          minLength: 1
+
+    DownloadToken:
+      type: object
+      required: [downloadUrl, filename, expiresAt]
+      properties:
+        downloadUrl:
+          type: string
+        filename:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+    HistoryEntry:
+      type: object
+      required: [id, action, filename, createdAt]
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+          enum: [upload, encrypt, decrypt, download, delete, rename]
+        filename:
+          type: string
+        algorithm:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    DashboardStats:
+      type: object
+      required: [totalFiles, encryptedFiles, storageUsed, storageQuota, recentActivity, algorithmBreakdown]
+      properties:
+        totalFiles:
+          type: integer
+        encryptedFiles:
+          type: integer
+        storageUsed:
+          type: integer
+        storageQuota:
+          type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/HistoryEntry"
+        algorithmBreakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/AlgorithmCount"
+
+    AlgorithmCount:
+      type: object
+      required: [algorithm, count]
+      properties:
+        algorithm:
+          type: string
+        count:
+          type: integer

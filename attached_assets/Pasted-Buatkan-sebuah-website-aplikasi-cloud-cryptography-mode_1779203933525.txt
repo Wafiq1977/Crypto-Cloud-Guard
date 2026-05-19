@@ -1,0 +1,414 @@
+Buatkan sebuah website aplikasi cloud cryptography modern bernama "CipherDrive" menggunakan:
+
+- Java Spring Boot
+- Spring Security
+- Thymeleaf
+- HTML
+- CSS
+- JavaScript
+- Bootstrap 5
+- MySQL
+- Hibernate / JPA
+
+Konsep aplikasi adalah gabungan antara:
+- Google Drive
+- Cloud Storage
+- Cryptography Lab
+- Cyber Security Dashboard
+
+Website harus memiliki desain futuristic cyber security dengan nuansa:
+- hitam matte
+- biru neon
+- hijau matrix
+- ungu cyberpunk
+
+Gunakan:
+- glassmorphism
+- glowing neon effect
+- smooth animation
+- responsive UI
+- modern dashboard layout
+
+==================================================
+KONSEP APLIKASI
+==================================================
+
+Aplikasi bekerja seperti Google Drive namun khusus untuk file encryption.
+
+Flow aplikasi:
+
+1. User register dan login
+2. User masuk ke dashboard pribadi
+3. User upload file
+4. User memilih algoritma enkripsi
+5. User memilih format output file
+6. User membuat key/password enkripsi
+7. Sistem mengenkripsi file
+8. File terenkripsi dengan format yang telah di set otomatis tersimpan di cloud storage aplikasi 
+9. User dapat:
+   - melihat daftar file
+   - mendownload file encrypted sesuai format 
+   - mendekripsi kembali file, dan file otomatis kembali seperti semula 
+   - menghapus file
+   - melihat histori aktivitas
+
+
+Semua file harus terhubung dengan akun masing-masing user.
+
+==================================================
+FITUR UTAMA
+==================================================
+
+1. Login dan Register User
+2. JWT / Session Authentication
+3. Dashboard cloud storage
+4. Upload file
+5. Encrypt file
+6. Decrypt file
+7. Download encrypted file
+8. Download decrypted file
+9. File manager seperti Google Drive
+10. History aktivitas user
+11. Search file
+12. Filter file
+13. Rename file
+14. Delete file
+15. Preview detail file
+16. Copy encryption key
+17. Drag and drop upload
+18. Responsive mobile & desktop
+19. Modern cyber dashboard
+20. Multi-user system
+
+==================================================
+ALGORITMA KRIPTOGRAFI
+==================================================
+
+Tambahkan algoritma:
+
+1. AES-256
+2. RSA
+3. Caesar Cipher
+4. Vigenere Cipher
+5. Rail Fence Cipher
+6. SHA-256 Hash
+7. Hybrid Encryption AES + RSA
+
+==================================================
+SISTEM FILE STORAGE
+==================================================
+
+Buat sistem penyimpanan file seperti cloud drive.
+
+Struktur:
+- setiap user memiliki folder sendiri
+- file encrypted disimpan di server
+- metadata file disimpan di database
+
+Contoh:
+uploads/
+   └── user_1/
+   └── user_2/
+
+File yang diupload:
+
+- txt
+
+- pdf
+- docx
+- xlsx
+- jpg
+- png
+- zip
+- mp4
+- mkv
+
+
+==================================================
+FITUR FILE ENCRYPTION
+==================================================
+
+Saat upload file:
+
+User harus:
+1. memilih file
+2. memilih algoritma
+3. memilih format output
+4. memasukkan encryption key
+
+Contoh format output:
+- .enc
+- .cipher
+- .locked
+- .txt encrypted
+
+Setelah encrypt:
+- file otomatis tersimpan
+- masuk ke halaman "My Files"
+- dapat didownload kapan saja
+
+==================================================
+HALAMAN WEBSITE
+==================================================
+
+1. LOGIN PAGE
+- futuristic login form
+- animated background
+- remember me
+- show password
+- neon button
+
+2. REGISTER PAGE
+- modern cyber register form
+- validation
+- password strength meter
+
+3. DASHBOARD PAGE
+Mirip Google Drive:
+- sidebar navigation
+- storage statistics
+- recent files
+- upload button
+- encryption quick action
+- search bar
+- file cards/table
+
+4. MY FILES PAGE
+Tampilkan:
+- nama file
+- ukuran
+- algoritma
+- tanggal upload
+- status encrypted/decrypted
+- tombol:
+  - download
+  - decrypt
+  - delete
+  - rename
+
+5. ENCRYPT PAGE
+Berisi:
+- upload file
+- pilih algoritma
+- input key
+- encrypt button
+- loading progress
+- success notification
+
+6. DECRYPT PAGE
+Berisi:
+- pilih file encrypted
+- input key
+- decrypt button
+- download decrypted file
+
+7. HISTORY PAGE
+Tampilkan histori:
+- upload
+- encrypt
+- decrypt
+- download
+- delete
+
+8. PROFILE PAGE
+Berisi:
+- profile user
+- edit profile
+- change password
+- storage usage
+
+==================================================
+DESAIN UI
+==================================================
+
+Gunakan konsep:
+- cyberpunk dashboard
+- hacker interface
+- neon glow
+- animated gradient
+- matrix rain background
+- glassmorphism cards
+
+Tambahkan:
+- FontAwesome icons
+- loading animation
+- toast notification
+- progress bar upload
+- smooth hover animation
+- animated sidebar
+- typing effect hero text
+
+==================================================
+STRUKTUR PROJECT
+==================================================
+
+Gunakan clean architecture:
+
+cipherdrive/
+│
+├── src/main/java/com/cipherdrive/
+│
+├── controller/
+├── service/
+├── repository/
+├── model/
+├── dto/
+├── security/
+├── config/
+├── util/
+├── storage/
+├── exception/
+│
+└── CipherDriveApplication.java
+
+==================================================
+BACKEND
+==================================================
+
+Gunakan:
+- Spring Boot MVC
+- Spring Security
+- Spring Data JPA
+- Hibernate
+- MySQL
+
+Buat:
+- authentication system
+- file upload service
+- encryption service
+- decryption service
+- cloud storage manager
+
+Pisahkan utility:
+- AESUtil.java
+- RSAUtil.java
+- CaesarCipher.java
+- FileEncryptionService.java
+
+==================================================
+DATABASE MYSQL
+==================================================
+
+Database:
+cipherdrive_db
+
+Tabel:
+
+users
+- id
+- username
+- email
+- password
+- role
+- created_at
+
+files
+- id
+- user_id
+- original_name
+- encrypted_name
+- algorithm
+- file_size
+- storage_path
+- status
+- created_at
+
+history
+- id
+- user_id
+- action
+- filename
+- algorithm
+- created_at
+
+==================================================
+SECURITY
+==================================================
+
+Tambahkan:
+- Spring Security login
+- BCrypt password hashing
+- CSRF protection
+- input sanitization
+- secure file upload validation
+- secure AES key generation
+- RSA keypair generation
+- session management
+- role-based access
+
+==================================================
+FITUR TAMBAHAN
+==================================================
+
+Tambahkan jika memungkinkan:
+
+1. Admin dashboard
+2. Storage quota user
+3. Export history PDF
+4. QR encryption
+5. Multi-file upload
+6. File sharing system
+7. Dark/light mode toggle
+8. Drag and drop upload
+9. Email verification
+10. Two-factor authentication
+11. Real-time upload progress
+12. Activity log
+
+==================================================
+VALIDASI
+==================================================
+
+Validasi:
+- file tidak boleh kosong
+- key wajib diisi
+- ukuran file dibatasi
+- extension file divalidasi
+- password minimal 8 karakter
+- tampilkan error modern menggunakan toast
+
+==================================================
+OUTPUT YANG HARUS DIHASILKAN AI
+==================================================
+
+AI harus menghasilkan:
+
+1. Full source code lengkap
+2. Semua file project
+3. Struktur folder lengkap
+4. Semua HTML Thymeleaf
+5. Semua CSS cyberpunk
+6. Semua JavaScript
+7. Semua Java Spring Boot code
+8. Konfigurasi Spring Security
+9. MySQL configuration
+10. Entity dan Repository
+11. Controller lengkap
+12. Service lengkap
+13. Utility encryption lengkap
+14. SQL database schema
+15. Responsive UI
+16. Production-ready clean code
+17. Step-by-step cara menjalankan project
+18. Maven dependencies lengkap
+19. application.properties lengkap
+20. UI modern seperti aplikasi startup cyber security profesional
+
+==================================================
+TARGET HASIL
+==================================================
+
+Hasil akhir harus terlihat seperti gabungan:
+- Google Drive
+- Mega.nz
+- Proton Drive
+- Hacker dashboard
+- Cyber security SaaS platform
+
+Dengan tampilan:
+- futuristic
+- elegant
+- premium
+- responsive
+- modern startup quality
+- production ready
