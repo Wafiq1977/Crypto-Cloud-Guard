@@ -133,7 +133,10 @@ export default function Files() {
       ? decryptResult.downloadUrl
       : `/api${decryptResult.downloadUrl}`;
     fetch(url, { headers: { Authorization: `Bearer ${token ?? ""}` } })
-      .then((r) => r.blob())
+      .then((r) => {
+        if (!r.ok) throw new Error("Download failed");
+        return r.blob();
+      })
       .then((blob) => {
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
@@ -141,7 +144,7 @@ export default function Files() {
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        toast({ title: "Download Initiated", description: "Decrypted file saved." });
+        toast({ title: "Download Initiated", description: "Decrypted file saved to your device." });
         setDecryptDialog(null);
         setDecryptKey("");
         setDecryptResult(null);
@@ -400,15 +403,20 @@ export default function Files() {
                 <Unlock className="w-8 h-8 text-accent" />
               </div>
               <p className="text-white font-mono">Asset unlocked successfully.</p>
-              <p className="text-xs text-muted-foreground font-mono">Download link expires shortly. Save the file now.</p>
+              <p className="text-xs text-muted-foreground font-mono">
+                The file has been restored to your vault with its original format.<br />
+                You can now Download, Encrypt, or manage it from the vault.
+              </p>
               <div className="flex gap-3 justify-center pt-2">
-                <Button variant="outline" onClick={closeDecryptDialog} className="font-mono">Close</Button>
+                <Button variant="outline" onClick={closeDecryptDialog} className="font-mono">
+                  Back to Vault
+                </Button>
                 <Button
                   onClick={handleDecryptDownload}
                   className="font-mono bg-accent text-black hover:bg-accent/90 shadow-[0_0_10px_rgba(0,255,65,0.3)]"
                   data-testid="button-download-decrypted"
                 >
-                  <Download className="w-4 h-4 mr-2" /> Download Decrypted
+                  <Download className="w-4 h-4 mr-2" /> Download Now
                 </Button>
               </div>
             </div>

@@ -350,19 +350,44 @@ router.post("/files/:id/decrypt", requireAuth, async (req: AuthRequest, res): Pr
     const encryptedData = fs.readFileSync(file.storagePath);
     const decrypted = decryptBuffer(encryptedData, file.algorithm, body.data.encryptionKey);
 
-    const decryptedFilename = `decrypted_${file.originalName}`;
-    const decryptedPath = path.join(getUserUploadDir(req.userId!), `${uuidv4()}_${file.originalName}`);
+    // Write decrypted content to a new file with original name
+    const decryptedStorageName = `${uuidv4()}_${file.originalName}`;
+    const decryptedPath = path.join(getUserUploadDir(req.userId!), decryptedStorageName);
     fs.writeFileSync(decryptedPath, decrypted);
+
+    // Remove the old encrypted file from disk
+    if (fs.existsSync(file.storagePath)) {
+      try { fs.unlinkSync(file.storagePath); } catch { /* ignore */ }
+    }
+
+    // Update the DB record: restore to decrypted state with original filename
+    await db
+      .update(filesTable)
+      .set({
+        status: "decrypted",
+        storagePath: decryptedPath,
+        fileSize: decrypted.length,
+        encryptedName: null,
+        algorithm: null,
+        outputFormat: null,
+      })
+      .where(eq(filesTable.id, file.id));
+
+    // Update user storage quota to reflect new (decrypted) size
+    await db
+      .update(usersTable)
+      .set({
+        storageUsed: sql`GREATEST(${usersTable.storageUsed} - ${file.fileSize} + ${decrypted.length}, 0)`,
+      })
+      .where(eq(usersTable.id, req.userId!));
 
     await logHistory(req.userId!, "decrypt", file.originalName, file.algorithm);
 
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-
     res.json(
       DecryptFileResponse.parse({
-        downloadUrl: `/api/files/download-temp/${path.basename(decryptedPath)}?userId=${req.userId}`,
-        filename: decryptedFilename,
-        expiresAt: expiresAt.toISOString(),
+        downloadUrl: `/api/files/serve/${file.id}`,
+        filename: file.originalName,
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       })
     );
   } catch (err: unknown) {
