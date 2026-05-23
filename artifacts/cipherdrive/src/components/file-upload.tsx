@@ -7,7 +7,7 @@ import { Button } from "./ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-export function FileUpload({ className }: { className?: string }) {
+export function FileUpload({ className, onUploadComplete }: { className?: string; onUploadComplete?: () => void }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -69,9 +69,11 @@ export function FileUpload({ className }: { className?: string }) {
       if (xhr.status >= 200 && xhr.status < 300) {
         toast({ title: "Upload complete", description: `${file.name} has been securely uploaded.` });
         setFile(null);
+        setProgress(0);
         queryClient.invalidateQueries({ queryKey: getListFilesQueryKey() });
         queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
         queryClient.invalidateQueries({ queryKey: ["/api/stats/dashboard"] });
+        onUploadComplete?.();
       } else {
         toast({ title: "Upload failed", description: "Failed to upload file. Please try again.", variant: "destructive" });
       }

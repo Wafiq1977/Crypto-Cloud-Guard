@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Search, Lock, Unlock, File, MoreVertical, Trash2, Edit2,
   ShieldAlert, Download, Eye, LockKeyhole, ShieldOff, Loader2,
+  UploadCloud,
 } from "lucide-react";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -26,8 +27,8 @@ import {
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
-import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 const ALGORITHMS = ["AES-256", "RSA", "HybridAES-RSA", "SHA256", "Caesar", "Vigenere", "RailFence"] as const;
 const PRESET_FORMATS = [".enc", ".cipher", ".locked"];
@@ -45,7 +46,6 @@ async function triggerFileDownload(fileId: number, open = false) {
   const blobUrl = URL.createObjectURL(blob);
   if (open) {
     window.open(blobUrl, "_blank");
-    // revoke after small delay — the new tab has loaded by then
     setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
   } else {
     const cd = res.headers.get("content-disposition") || "";
@@ -64,6 +64,7 @@ async function triggerFileDownload(fileId: number, open = false) {
 export default function Files() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [renamingFile, setRenamingFile] = useState<{ id: number; name: string } | null>(null);
   const [decryptDialog, setDecryptDialog] = useState<{ id: number; name: string; algo: string | null } | null>(null);
   const [encryptDialog, setEncryptDialog] = useState<{ id: number; name: string } | null>(null);
@@ -187,25 +188,38 @@ export default function Files() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-border/50 pb-4 gap-4">
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-border/50 pb-4 gap-3">
         <div>
           <h1 className="text-2xl font-mono font-bold tracking-widest text-white">SECURE VAULT</h1>
           <p className="text-primary/70 font-mono text-sm uppercase tracking-wider">Manage Encrypted Assets</p>
         </div>
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search vault..."
-            className="pl-9 bg-black/40 border-border/50 font-mono text-sm focus:border-primary/50"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            data-testid="input-search"
-          />
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Search */}
+          <div className="relative flex-1 sm:w-56">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search vault..."
+              className="pl-9 bg-black/40 border-border/50 font-mono text-sm focus:border-primary/50"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              data-testid="input-search"
+            />
+          </div>
+          {/* Upload button */}
+          <Button
+            onClick={() => setUploadOpen(true)}
+            className="bg-primary text-black hover:bg-primary/90 font-mono font-bold shadow-[0_0_10px_rgba(0,212,255,0.3)] flex-shrink-0"
+            data-testid="button-open-upload"
+          >
+            <UploadCloud className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Upload</span>
+            <span className="sm:hidden">+</span>
+          </Button>
         </div>
       </div>
 
-      <FileUpload className="mb-8" />
-
+      {/* ── File List ── */}
       <div className="grid grid-cols-1 gap-3">
         {isLoading ? (
           <div className="flex justify-center py-12">
@@ -215,7 +229,14 @@ export default function Files() {
           <div className="text-center py-16 bg-black/20 rounded-lg border border-border/30 border-dashed">
             <ShieldAlert className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
             <h3 className="font-mono text-lg text-white mb-2">Vault Empty</h3>
-            <p className="font-mono text-sm text-muted-foreground">Upload files above to begin encryption process.</p>
+            <p className="font-mono text-sm text-muted-foreground mb-4">No files yet. Upload your first file to begin.</p>
+            <Button
+              onClick={() => setUploadOpen(true)}
+              variant="outline"
+              className="font-mono border-primary/50 text-primary hover:bg-primary/10"
+            >
+              <UploadCloud className="w-4 h-4 mr-2" /> Upload File
+            </Button>
           </div>
         ) : (
           files.map((file) => {
@@ -230,46 +251,46 @@ export default function Files() {
                 className="bg-black/40 border-border/50 backdrop-blur-md hover:border-primary/30 transition-colors group"
               >
                 <CardContent className="p-4 flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 min-w-0 flex-1">
+                  <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1">
                     <div className={cn(
-                      "w-10 h-10 rounded flex items-center justify-center flex-shrink-0 border",
+                      "w-9 h-9 md:w-10 md:h-10 rounded flex items-center justify-center flex-shrink-0 border",
                       isEncrypted && "bg-primary/10 border-primary/30 text-primary shadow-[0_0_10px_rgba(0,212,255,0.2)]",
                       isDecrypted && "bg-accent/10 border-accent/30 text-accent",
                       isUploaded && "bg-muted/10 border-muted/30 text-muted-foreground",
                     )}>
-                      {isEncrypted ? <Lock className="w-5 h-5" /> : isDecrypted ? <Unlock className="w-5 h-5" /> : <File className="w-5 h-5" />}
+                      {isEncrypted ? <Lock className="w-4 h-4 md:w-5 md:h-5" /> : isDecrypted ? <Unlock className="w-4 h-4 md:w-5 md:h-5" /> : <File className="w-4 h-4 md:w-5 md:h-5" />}
                     </div>
 
                     <div className="min-w-0 flex-1">
                       <h4
-                        className="font-mono font-medium text-white truncate cursor-pointer hover:text-primary transition-colors"
+                        className="font-mono font-medium text-white truncate cursor-pointer hover:text-primary transition-colors text-sm md:text-base"
                         onClick={() => handleDownload(file.id, true)}
                         title="Click to open"
                       >
                         {file.originalName}
                         {file.encryptedName && (
-                          <span className="text-muted-foreground ml-2 text-xs">→ {file.encryptedName}</span>
+                          <span className="text-muted-foreground ml-2 text-xs hidden sm:inline">→ {file.encryptedName}</span>
                         )}
                       </h4>
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <div className="flex items-center gap-1.5 md:gap-2 mt-1 flex-wrap">
                         <span className="text-xs font-mono text-muted-foreground">{formatBytes(file.fileSize)}</span>
                         <span className="text-muted-foreground/40 text-xs">•</span>
-                        <span className="text-xs font-mono text-muted-foreground">{formatDate(file.createdAt)}</span>
+                        <span className="text-xs font-mono text-muted-foreground hidden sm:inline">{formatDate(file.createdAt)}</span>
                         {file.algorithm && (
                           <>
-                            <span className="text-muted-foreground/40 text-xs">•</span>
-                            <span className={cn("text-[10px] px-1.5 py-0.5 rounded border uppercase tracking-wider font-mono", getAlgorithmColor(file.algorithm))}>
+                            <span className="text-muted-foreground/40 text-xs hidden sm:inline">•</span>
+                            <span className={cn("text-[10px] px-1.5 py-0.5 rounded border uppercase tracking-wider font-mono hidden sm:inline", getAlgorithmColor(file.algorithm))}>
                               {file.algorithm}
                             </span>
                           </>
                         )}
                         {file.outputFormat && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-border/40 text-muted-foreground font-mono">
+                          <span className="text-[10px] px-1.5 py-0.5 rounded border border-border/40 text-muted-foreground font-mono hidden md:inline">
                             {file.outputFormat}
                           </span>
                         )}
                         <Badge className={cn(
-                          "text-[10px] px-1.5 py-0.5 rounded border uppercase tracking-wider font-mono h-auto ml-auto md:ml-0",
+                          "text-[10px] px-1.5 py-0.5 rounded border uppercase tracking-wider font-mono h-auto",
                           isEncrypted && "bg-primary/10 text-primary border-primary/30",
                           isDecrypted && "bg-accent/10 text-accent border-accent/30",
                           isUploaded && "bg-gray-500/10 text-gray-400 border-gray-500/30",
@@ -295,73 +316,29 @@ export default function Files() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="bg-black/90 backdrop-blur-xl border-border/50 font-mono w-40">
-
-                        {/* Download */}
-                        <DropdownMenuItem
-                          onClick={() => handleDownload(file.id, false)}
-                          className="hover:bg-white/10 cursor-pointer"
-                          data-testid={`action-download-${file.id}`}
-                        >
-                          <Download className="w-4 h-4 mr-2 text-primary" />
-                          Download
+                        <DropdownMenuItem onClick={() => handleDownload(file.id, false)} className="hover:bg-white/10 cursor-pointer" data-testid={`action-download-${file.id}`}>
+                          <Download className="w-4 h-4 mr-2 text-primary" /> Download
                         </DropdownMenuItem>
-
-                        {/* Open */}
-                        <DropdownMenuItem
-                          onClick={() => handleDownload(file.id, true)}
-                          className="hover:bg-white/10 cursor-pointer"
-                          data-testid={`action-open-${file.id}`}
-                        >
-                          <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
-                          Open
+                        <DropdownMenuItem onClick={() => handleDownload(file.id, true)} className="hover:bg-white/10 cursor-pointer" data-testid={`action-open-${file.id}`}>
+                          <Eye className="w-4 h-4 mr-2 text-muted-foreground" /> Open
                         </DropdownMenuItem>
-
                         <DropdownMenuSeparator className="bg-border/30" />
-
-                        {/* Decrypt — only for encrypted files */}
                         {isEncrypted && (
-                          <DropdownMenuItem
-                            onClick={() => setDecryptDialog({ id: file.id, name: file.originalName, algo: file.algorithm ?? null })}
-                            className="hover:bg-accent/10 text-accent cursor-pointer"
-                            data-testid={`action-decrypt-${file.id}`}
-                          >
-                            <ShieldOff className="w-4 h-4 mr-2" />
-                            Decrypt
+                          <DropdownMenuItem onClick={() => setDecryptDialog({ id: file.id, name: file.originalName, algo: file.algorithm ?? null })} className="hover:bg-accent/10 text-accent cursor-pointer" data-testid={`action-decrypt-${file.id}`}>
+                            <ShieldOff className="w-4 h-4 mr-2" /> Decrypt
                           </DropdownMenuItem>
                         )}
-
-                        {/* Encrypt — for uploaded or decrypted files */}
                         {(isUploaded || isDecrypted) && (
-                          <DropdownMenuItem
-                            onClick={() => setEncryptDialog({ id: file.id, name: file.originalName })}
-                            className="hover:bg-primary/10 text-primary cursor-pointer"
-                            data-testid={`action-encrypt-${file.id}`}
-                          >
-                            <LockKeyhole className="w-4 h-4 mr-2" />
-                            Encrypt
+                          <DropdownMenuItem onClick={() => setEncryptDialog({ id: file.id, name: file.originalName })} className="hover:bg-primary/10 text-primary cursor-pointer" data-testid={`action-encrypt-${file.id}`}>
+                            <LockKeyhole className="w-4 h-4 mr-2" /> Encrypt
                           </DropdownMenuItem>
                         )}
-
                         <DropdownMenuSeparator className="bg-border/30" />
-
-                        {/* Rename */}
-                        <DropdownMenuItem
-                          onClick={() => setRenamingFile({ id: file.id, name: file.originalName })}
-                          className="hover:bg-white/10 cursor-pointer"
-                          data-testid={`action-rename-${file.id}`}
-                        >
-                          <Edit2 className="w-4 h-4 mr-2" />
-                          Rename
+                        <DropdownMenuItem onClick={() => setRenamingFile({ id: file.id, name: file.originalName })} className="hover:bg-white/10 cursor-pointer" data-testid={`action-rename-${file.id}`}>
+                          <Edit2 className="w-4 h-4 mr-2" /> Rename
                         </DropdownMenuItem>
-
-                        {/* Delete */}
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(file.id, file.originalName)}
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer"
-                          data-testid={`action-delete-${file.id}`}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Delete
+                        <DropdownMenuItem onClick={() => handleDelete(file.id, file.originalName)} className="text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer" data-testid={`action-delete-${file.id}`}>
+                          <Trash2 className="w-4 h-4 mr-2" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -372,6 +349,20 @@ export default function Files() {
           })
         )}
       </div>
+
+      {/* ── Upload Dialog ── */}
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent className="bg-black/90 border-primary/30 backdrop-blur-xl font-mono sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-white uppercase tracking-wider flex items-center gap-2">
+              <UploadCloud className="w-5 h-5 text-primary" /> Upload Asset
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-2">
+            <FileUpload onUploadComplete={() => setUploadOpen(false)} />
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Rename Dialog ── */}
       <Dialog open={!!renamingFile} onOpenChange={(open) => !open && setRenamingFile(null)}>
@@ -417,14 +408,8 @@ export default function Files() {
                 You can now Download, Encrypt, or manage it from the vault.
               </p>
               <div className="flex gap-3 justify-center pt-2">
-                <Button variant="outline" onClick={closeDecryptDialog} className="font-mono">
-                  Back to Vault
-                </Button>
-                <Button
-                  onClick={handleDecryptDownload}
-                  className="font-mono bg-accent text-black hover:bg-accent/90 shadow-[0_0_10px_rgba(0,255,65,0.3)]"
-                  data-testid="button-download-decrypted"
-                >
+                <Button variant="outline" onClick={closeDecryptDialog} className="font-mono">Back to Vault</Button>
+                <Button onClick={handleDecryptDownload} className="font-mono bg-accent text-black hover:bg-accent/90 shadow-[0_0_10px_rgba(0,255,65,0.3)]" data-testid="button-download-decrypted">
                   <Download className="w-4 h-4 mr-2" /> Download Now
                 </Button>
               </div>
@@ -453,12 +438,7 @@ export default function Files() {
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={closeDecryptDialog}>Cancel</Button>
-                <Button
-                  onClick={handleDecrypt}
-                  disabled={decryptMutation.isPending || !decryptKey.trim()}
-                  className="bg-accent text-black hover:bg-accent/90 font-mono shadow-[0_0_10px_rgba(0,255,65,0.2)]"
-                  data-testid="button-execute-decrypt"
-                >
+                <Button onClick={handleDecrypt} disabled={decryptMutation.isPending || !decryptKey.trim()} className="bg-accent text-black hover:bg-accent/90 font-mono shadow-[0_0_10px_rgba(0,255,65,0.2)]" data-testid="button-execute-decrypt">
                   {decryptMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   {decryptMutation.isPending ? "Decrypting..." : "Execute Decryption"}
                 </Button>
@@ -480,7 +460,6 @@ export default function Files() {
             <div className="text-xs font-mono text-muted-foreground">
               File: <span className="text-white">{encryptDialog?.name}</span>
             </div>
-
             <div>
               <label className="text-muted-foreground font-mono uppercase text-xs block mb-1.5">Algorithm</label>
               <Select value={encryptAlgo} onValueChange={(v) => setEncryptAlgo(v as typeof encryptAlgo)}>
@@ -498,18 +477,15 @@ export default function Files() {
                 </SelectContent>
               </Select>
             </div>
-
             <div>
               <label className="text-muted-foreground font-mono uppercase text-xs block mb-1.5">Output Format</label>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={encryptFormat}
-                  onChange={(e) => setEncryptFormat(e.target.value)}
-                  placeholder=".enc"
-                  className="bg-black/50 border-border/50 focus:border-primary/50 text-white font-mono flex-1"
-                  data-testid="input-encrypt-format"
-                />
-              </div>
+              <Input
+                value={encryptFormat}
+                onChange={(e) => setEncryptFormat(e.target.value)}
+                placeholder=".enc"
+                className="bg-black/50 border-border/50 focus:border-primary/50 text-white font-mono"
+                data-testid="input-encrypt-format"
+              />
               <div className="flex gap-1 mt-1.5 flex-wrap">
                 {PRESET_FORMATS.map((f) => (
                   <button
@@ -518,9 +494,7 @@ export default function Files() {
                     onClick={() => setEncryptFormat(f)}
                     className={cn(
                       "text-[10px] px-2 py-0.5 rounded border font-mono transition-colors",
-                      encryptFormat === f
-                        ? "border-primary/60 text-primary bg-primary/10"
-                        : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-white"
+                      encryptFormat === f ? "border-primary/60 text-primary bg-primary/10" : "border-border/40 text-muted-foreground hover:border-primary/30 hover:text-white"
                     )}
                   >
                     {f}
@@ -528,7 +502,6 @@ export default function Files() {
                 ))}
               </div>
             </div>
-
             <div>
               <label className="text-muted-foreground font-mono uppercase text-xs block mb-1.5">Cryptographic Key</label>
               <Input
@@ -545,12 +518,7 @@ export default function Files() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEncryptDialog(null)}>Cancel</Button>
-            <Button
-              onClick={handleEncrypt}
-              disabled={encryptMutation.isPending || !encryptKey.trim()}
-              className="bg-primary text-black hover:bg-primary/90 font-mono shadow-[0_0_10px_rgba(0,212,255,0.2)]"
-              data-testid="button-execute-encrypt"
-            >
+            <Button onClick={handleEncrypt} disabled={encryptMutation.isPending || !encryptKey.trim()} className="bg-primary text-black hover:bg-primary/90 font-mono shadow-[0_0_10px_rgba(0,212,255,0.2)]" data-testid="button-execute-encrypt">
               {encryptMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
               {encryptMutation.isPending ? "Encrypting..." : "Execute Encryption"}
             </Button>
