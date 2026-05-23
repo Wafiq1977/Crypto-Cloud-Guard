@@ -139,11 +139,11 @@ export default function Decrypt() {
                           ) : (
                             files.map(file => (
                               <SelectItem key={file.id} value={file.id.toString()} className="focus:bg-accent/20 focus:text-white cursor-pointer py-3">
-                                <div className="flex items-center justify-between w-[300px] md:w-[500px] gap-4">
-                                  <span className="truncate">{file.encryptedName || file.originalName}</span>
-                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                <div className="flex items-center justify-between w-full gap-2 min-w-0">
+                                  <span className="truncate min-w-0 flex-1">{file.encryptedName || file.originalName}</span>
+                                  <div className="flex items-center gap-1.5 flex-shrink-0">
                                     {file.algorithm && (
-                                      <span className={cn("text-[10px] px-1.5 py-0.5 rounded border uppercase", getAlgorithmColor(file.algorithm))}>
+                                      <span className={cn("text-[10px] px-1.5 py-0.5 rounded border uppercase hidden sm:inline", getAlgorithmColor(file.algorithm))}>
                                         {file.algorithm}
                                       </span>
                                     )}
