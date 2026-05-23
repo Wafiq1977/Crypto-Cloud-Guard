@@ -429,7 +429,41 @@ router.get("/files/:id/download", requireAuth, async (req: AuthRequest, res): Pr
   );
 });
 
-// Serve file directly (actual download endpoint)
+const MIME_TYPES: Record<string, string> = {
+  ".txt":  "text/plain",
+  ".md":   "text/plain",
+  ".csv":  "text/csv",
+  ".html": "text/html",
+  ".css":  "text/css",
+  ".js":   "application/javascript",
+  ".json": "application/json",
+  ".xml":  "application/xml",
+  ".pdf":  "application/pdf",
+  ".zip":  "application/zip",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".jpg":  "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png":  "image/png",
+  ".gif":  "image/gif",
+  ".webp": "image/webp",
+  ".svg":  "image/svg+xml",
+  ".ico":  "image/x-icon",
+  ".bmp":  "image/bmp",
+  ".mp4":  "video/mp4",
+  ".mkv":  "video/x-matroska",
+  ".webm": "video/webm",
+  ".mp3":  "audio/mpeg",
+  ".wav":  "audio/wav",
+  ".ogg":  "audio/ogg",
+};
+
+function getMimeType(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  return MIME_TYPES[ext] ?? "application/octet-stream";
+}
+
+// Serve file directly — supports ?inline=true to display in-browser
 router.get("/files/serve/:id", requireAuth, async (req: AuthRequest, res): Promise<void> => {
   const rawId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(rawId, 10);
@@ -450,9 +484,15 @@ router.get("/files/serve/:id", requireAuth, async (req: AuthRequest, res): Promi
     return;
   }
 
-  const filename = file.encryptedName || file.originalName;
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-  res.setHeader("Content-Type", "application/octet-stream");
+  const inline = req.query.inline === "true";
+  // For inline/open: use original filename and proper MIME type so browser can render it
+  // For download: force-download with octet-stream
+  const serveFilename = file.originalName;
+  const mimeType = inline ? getMimeType(file.originalName) : "application/octet-stream";
+  const disposition = inline ? `inline; filename="${serveFilename}"` : `attachment; filename="${file.encryptedName || file.originalName}"`;
+
+  res.setHeader("Content-Disposition", disposition);
+  res.setHeader("Content-Type", mimeType);
   fs.createReadStream(file.storagePath).pipe(res as unknown as NodeJS.WritableStream);
 });
 

@@ -34,26 +34,31 @@ const PRESET_FORMATS = [".enc", ".cipher", ".locked"];
 
 async function triggerFileDownload(fileId: number, open = false) {
   const token = localStorage.getItem("cipherdrive_token");
-  const res = await fetch(`/api/files/serve/${fileId}`, {
+  const url = open
+    ? `/api/files/serve/${fileId}?inline=true`
+    : `/api/files/serve/${fileId}`;
+  const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token ?? ""}` },
   });
   if (!res.ok) throw new Error("Download failed");
   const blob = await res.blob();
-  const cd = res.headers.get("content-disposition") || "";
-  const match = cd.match(/filename="?([^"]+)"?/);
-  const filename = match?.[1] ?? `file_${fileId}`;
-  const url = URL.createObjectURL(blob);
+  const blobUrl = URL.createObjectURL(blob);
   if (open) {
-    window.open(url, "_blank");
+    window.open(blobUrl, "_blank");
+    // revoke after small delay — the new tab has loaded by then
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
   } else {
+    const cd = res.headers.get("content-disposition") || "";
+    const match = cd.match(/filename="?([^"]+)"?/);
+    const filename = match?.[1] ?? `file_${fileId}`;
     const a = document.createElement("a");
-    a.href = url;
+    a.href = blobUrl;
     a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
   }
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 export default function Files() {
@@ -236,7 +241,11 @@ export default function Files() {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <h4 className="font-mono font-medium text-white truncate">
+                      <h4
+                        className="font-mono font-medium text-white truncate cursor-pointer hover:text-primary transition-colors"
+                        onClick={() => handleDownload(file.id, true)}
+                        title="Click to open"
+                      >
                         {file.originalName}
                         {file.encryptedName && (
                           <span className="text-muted-foreground ml-2 text-xs">→ {file.encryptedName}</span>
