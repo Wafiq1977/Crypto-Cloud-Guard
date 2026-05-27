@@ -18,7 +18,7 @@ const PRESET_FORMATS = [".enc", ".cipher", ".locked", ".vault", ".sec"];
 
 const encryptSchema = z.object({
   fileId: z.string().min(1, "Select a file to encrypt"),
-  algorithm: z.enum(["AES-256", "RSA", "Caesar", "Vigenere", "RailFence", "SHA256", "HybridAES-RSA"]),
+  algorithm: z.enum(["AES-256", "RSA", "Caesar", "Vigenere", "RailFence", "HybridAES-RSA"]),
   encryptionKey: z.string().min(8, "Encryption key must be at least 8 characters"),
   outputFormat: z.string().min(2, "Output format required").refine(
     (v) => v.startsWith("."),
@@ -183,7 +183,6 @@ export default function Encrypt() {
                         <SelectItem value="AES-256">AES-256 — Military Grade</SelectItem>
                         <SelectItem value="RSA">RSA — Asymmetric</SelectItem>
                         <SelectItem value="HybridAES-RSA">Hybrid AES+RSA — Maximum Security</SelectItem>
-                        <SelectItem value="SHA256">SHA-256 — Hash (No Decrypt)</SelectItem>
                         <SelectItem value="Caesar">Caesar Cipher — Legacy</SelectItem>
                         <SelectItem value="Vigenere">Vigenere Cipher — Legacy</SelectItem>
                         <SelectItem value="RailFence">Rail Fence — Legacy</SelectItem>

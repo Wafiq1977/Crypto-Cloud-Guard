@@ -30,7 +30,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 
-const ALGORITHMS = ["AES-256", "RSA", "HybridAES-RSA", "SHA256", "Caesar", "Vigenere", "RailFence"] as const;
+const ALGORITHMS = ["AES-256", "RSA", "HybridAES-RSA", "Caesar", "Vigenere", "RailFence"] as const;
 const PRESET_FORMATS = [".enc", ".cipher", ".locked"];
 
 async function triggerFileDownload(fileId: number, open = false) {
@@ -470,7 +470,6 @@ export default function Files() {
                   <SelectItem value="AES-256">AES-256 (Military Grade)</SelectItem>
                   <SelectItem value="RSA">RSA (Asymmetric)</SelectItem>
                   <SelectItem value="HybridAES-RSA">Hybrid AES+RSA (Maximum)</SelectItem>
-                  <SelectItem value="SHA256">SHA-256 (Hash / No Decrypt)</SelectItem>
                   <SelectItem value="Caesar">Caesar Cipher</SelectItem>
                   <SelectItem value="Vigenere">Vigenere Cipher</SelectItem>
                   <SelectItem value="RailFence">Rail Fence Cipher</SelectItem>
