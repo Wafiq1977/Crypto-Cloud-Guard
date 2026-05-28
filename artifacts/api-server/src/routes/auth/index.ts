@@ -28,7 +28,7 @@ const AVATAR_ALLOWED = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
 
 const uploadAvatar = multer({
   storage: avatarStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     if (AVATAR_ALLOWED.includes(ext)) {
@@ -39,6 +39,20 @@ const uploadAvatar = multer({
   },
 });
 
+const MIME_MAP: Record<string, string> = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+};
+
+/** Public URL for an avatar — readable by <img> without auth */
+function publicAvatarUrl(userId: number, avatarPath: string | null | undefined): string | null {
+  if (!avatarPath) return null;
+  return `/api/auth/avatar/${userId}`;
+}
+
 function buildUserOut(user: typeof usersTable.$inferSelect) {
   return {
     id: user.id,
@@ -47,7 +61,7 @@ function buildUserOut(user: typeof usersTable.$inferSelect) {
     createdAt: user.createdAt.toISOString(),
     storageUsed: user.storageUsed,
     storageQuota: user.storageQuota,
-    avatarUrl: user.avatarPath ? "/api/auth/avatar" : null,
+    avatarUrl: publicAvatarUrl(user.id, user.avatarPath),
   };
 }
 
@@ -74,7 +88,6 @@ router.post("/auth/register", async (req, res): Promise<void> => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-
   const [user] = await db
     .insert(usersTable)
     .values({ username, email, password: hashedPassword })
@@ -118,26 +131,22 @@ router.post("/auth/logout", (_req, res): void => {
   res.json({ success: true, message: "Logged out" });
 });
 
-router.get(
-  "/auth/me",
-  requireAuth,
-  async (req: AuthRequest, res): Promise<void> => {
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.id, req.userId!))
-      .limit(1);
+router.get("/auth/me", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  const [user] = await db
+    .select()
+    .from(usersTable)
+    .where(eq(usersTable.id, req.userId!))
+    .limit(1);
 
-    if (!user) {
-      res.status(401).json({ error: "User not found" });
-      return;
-    }
-
-    res.json(GetCurrentUserResponse.parse(buildUserOut(user)));
+  if (!user) {
+    res.status(401).json({ error: "User not found" });
+    return;
   }
-);
 
-// POST /auth/avatar — upload a profile photo
+  res.json(GetCurrentUserResponse.parse(buildUserOut(user)));
+});
+
+// POST /auth/avatar — upload profile photo (authenticated)
 router.post(
   "/auth/avatar",
   requireAuth,
@@ -150,7 +159,6 @@ router.post(
       return;
     }
 
-    // Delete old avatar if it exists and has a different name
     const [existing] = await db
       .select({ avatarPath: usersTable.avatarPath })
       .from(usersTable)
@@ -166,39 +174,53 @@ router.post(
       .set({ avatarPath: req.file.path })
       .where(eq(usersTable.id, req.userId!));
 
-    res.json({ avatarUrl: "/api/auth/avatar" });
+    res.json({ avatarUrl: publicAvatarUrl(req.userId!, req.file.path) });
   }
 );
 
-// GET /auth/avatar — serve the authenticated user's profile photo
-router.get(
-  "/auth/avatar",
-  requireAuth,
-  async (req: AuthRequest, res): Promise<void> => {
-    const [user] = await db
-      .select({ avatarPath: usersTable.avatarPath })
-      .from(usersTable)
-      .where(eq(usersTable.id, req.userId!))
-      .limit(1);
+// DELETE /auth/avatar — remove profile photo (authenticated)
+router.delete("/auth/avatar", requireAuth, async (req: AuthRequest, res): Promise<void> => {
+  const [user] = await db
+    .select({ avatarPath: usersTable.avatarPath })
+    .from(usersTable)
+    .where(eq(usersTable.id, req.userId!))
+    .limit(1);
 
-    if (!user?.avatarPath || !fs.existsSync(user.avatarPath)) {
-      res.status(404).json({ error: "No avatar set" });
-      return;
-    }
-
-    const ext = path.extname(user.avatarPath).toLowerCase();
-    const mimeMap: Record<string, string> = {
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-      ".gif": "image/gif",
-      ".webp": "image/webp",
-    };
-
-    res.setHeader("Content-Type", mimeMap[ext] ?? "image/jpeg");
-    res.setHeader("Cache-Control", "no-cache");
-    fs.createReadStream(user.avatarPath).pipe(res);
+  if (user?.avatarPath) {
+    try { fs.unlinkSync(user.avatarPath); } catch { /* ignore */ }
   }
-);
+
+  await db
+    .update(usersTable)
+    .set({ avatarPath: null })
+    .where(eq(usersTable.id, req.userId!));
+
+  res.json({ success: true });
+});
+
+// GET /auth/avatar/:userId — PUBLIC serve endpoint so <img> tags work without auth
+router.get("/auth/avatar/:userId", async (req, res): Promise<void> => {
+  const userId = parseInt(req.params.userId, 10);
+  if (isNaN(userId)) {
+    res.status(400).json({ error: "Invalid user id" });
+    return;
+  }
+
+  const [user] = await db
+    .select({ avatarPath: usersTable.avatarPath })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .limit(1);
+
+  if (!user?.avatarPath || !fs.existsSync(user.avatarPath)) {
+    res.status(404).json({ error: "No avatar" });
+    return;
+  }
+
+  const ext = path.extname(user.avatarPath).toLowerCase();
+  res.setHeader("Content-Type", MIME_MAP[ext] ?? "image/jpeg");
+  res.setHeader("Cache-Control", "public, max-age=60");
+  fs.createReadStream(user.avatarPath).pipe(res);
+});
 
 export default router;
