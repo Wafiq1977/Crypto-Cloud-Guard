@@ -2,7 +2,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import {
   Shield, LayoutDashboard, FolderLock, LockKeyhole, Unlock,
-  History, User, LogOut, Menu, X,
+  History, LogOut, Menu, X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogout } from "@workspace/api-client-react";
@@ -22,6 +22,25 @@ const NAV_ITEMS = [
   { href: "/history",    label: "Activity Log",  icon: History },
 ];
 
+function UserAvatar({ username, avatarUrl }: { username?: string; avatarUrl?: string | null }) {
+  const initials = username ? username.slice(0, 2).toUpperCase() : "??";
+  if (avatarUrl) {
+    return (
+      <img
+        src={avatarUrl}
+        alt={username}
+        className="w-7 h-7 rounded-full object-cover border border-secondary/40 flex-shrink-0"
+        onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+      />
+    );
+  }
+  return (
+    <div className="w-7 h-7 rounded-full bg-secondary/20 border border-secondary/30 flex items-center justify-center flex-shrink-0">
+      <span className="text-[10px] font-mono font-bold text-secondary/80">{initials}</span>
+    </div>
+  );
+}
+
 function SidebarContent({
   location,
   user,
@@ -29,7 +48,7 @@ function SidebarContent({
   onLogout,
 }: {
   location: string;
-  user: { username?: string } | null;
+  user: { username?: string; avatarUrl?: string | null } | null;
   onNav: () => void;
   onLogout: () => void;
 }) {
@@ -83,7 +102,7 @@ function SidebarContent({
             "flex items-center gap-3 px-3 py-2.5 rounded-md font-mono text-sm transition-all duration-200",
             location === "/profile" ? "text-white bg-white/10" : "text-muted-foreground hover:text-white hover:bg-white/5"
           )}>
-            <User className="w-5 h-5 flex-shrink-0" />
+            <UserAvatar username={user?.username} avatarUrl={user?.avatarUrl} />
             <span className="truncate">{user?.username || "Operator"}</span>
           </div>
         </Link>
