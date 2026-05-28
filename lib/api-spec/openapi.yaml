@@ -420,6 +420,9 @@ components:
         storageQuota:
           type: integer
           description: Total quota in bytes
+        avatarUrl:
+          type: ["string", "null"]
+          description: URL to fetch the user's profile photo
 
     AuthResponse:
       type: object

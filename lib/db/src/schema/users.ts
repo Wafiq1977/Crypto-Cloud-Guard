@@ -9,6 +9,7 @@ export const usersTable = pgTable("users", {
   password: text("password").notNull(),
   storageUsed: integer("storage_used").notNull().default(0),
   storageQuota: integer("storage_quota").notNull().default(1073741824), // 1GB
+  avatarPath: text("avatar_path"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -16,6 +17,7 @@ export const insertUserSchema = createInsertSchema(usersTable).omit({
   id: true,
   storageUsed: true,
   storageQuota: true,
+  avatarPath: true,
   createdAt: true,
 });
 export type InsertUser = z.infer<typeof insertUserSchema>;

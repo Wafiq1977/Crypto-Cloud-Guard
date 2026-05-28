@@ -15,4 +15,9 @@ export interface User {
   storageUsed: number;
   /** Total quota in bytes */
   storageQuota: number;
+  /**
+     * URL to fetch the user's profile photo
+     * @nullable
+     */
+  avatarUrl?: string | null;
 }

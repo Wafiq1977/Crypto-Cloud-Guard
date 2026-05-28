@@ -47,7 +47,8 @@ export const LoginResponse = zod.object({
   "email": zod.string(),
   "createdAt": zod.coerce.date(),
   "storageUsed": zod.number().describe('Bytes used'),
-  "storageQuota": zod.number().describe('Total quota in bytes')
+  "storageQuota": zod.number().describe('Total quota in bytes'),
+  "avatarUrl": zod.string().nullish().describe('URL to fetch the user\'s profile photo')
 }),
   "token": zod.string()
 })
@@ -71,7 +72,8 @@ export const GetCurrentUserResponse = zod.object({
   "email": zod.string(),
   "createdAt": zod.coerce.date(),
   "storageUsed": zod.number().describe('Bytes used'),
-  "storageQuota": zod.number().describe('Total quota in bytes')
+  "storageQuota": zod.number().describe('Total quota in bytes'),
+  "avatarUrl": zod.string().nullish().describe('URL to fetch the user\'s profile photo')
 })
 
 
