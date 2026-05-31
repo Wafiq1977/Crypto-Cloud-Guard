@@ -19,33 +19,55 @@ export function decryptAES(data: Buffer, key: string): Buffer {
 }
 
 // RSA encryption (for small data / keys)
+// Cache for deterministic key pair generation from passphrases
+const rsaKeyCache = new Map<string, { publicKey: string; privateKey: string }>();
+
 export function encryptRSA(data: Buffer, publicKey: string): Buffer {
-  try {
-    return crypto.publicEncrypt(
-      { key: publicKey, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
-      data
-    );
-  } catch {
-    // If publicKey is a passphrase, generate a keypair and use it
-    const { publicKey: pub, privateKey: priv } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
-    const pubExport = pub.export({ type: "spki", format: "pem" }).toString();
-    const privExport = priv.export({ type: "pkcs8", format: "pem" }).toString();
-    const encrypted = crypto.publicEncrypt({ key: pubExport, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING }, data);
-    // Prepend private key length + private key so we can decrypt later
-    const privBuf = Buffer.from(privExport);
-    const lenBuf = Buffer.alloc(4);
-    lenBuf.writeUInt32BE(privBuf.length, 0);
-    return Buffer.concat([lenBuf, privBuf, encrypted]);
+  // Handle both PEM format strings and potential passphrases
+  let keyToUse = publicKey;
+  
+  // If the key doesn't look like a PEM public key, treat it as a passphrase
+  // and generate/get a deterministic key pair from it
+  if (!publicKey.includes("BEGIN PUBLIC KEY") && !publicKey.includes("BEGIN RSA PUBLIC KEY")) {
+    const passphraseHash = crypto.createHash('sha256').update(publicKey).digest('hex');
+    
+    // Get or generate key pair for this passphrase
+    if (!rsaKeyCache.has(passphraseHash)) {
+      const { publicKey: pub, privateKey: priv } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+      rsaKeyCache.set(passphraseHash, {
+        publicKey: pub.export({ type: "spki", format: "pem" }).toString(),
+        privateKey: priv.export({ type: "pkcs8", format: "pem" }).toString()
+      });
+    }
+    
+    keyToUse = rsaKeyCache.get(passphraseHash)!.publicKey;
   }
+  
+  return crypto.publicEncrypt(
+    { key: keyToUse, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+    data
+  );
 }
 
-export function decryptRSA(data: Buffer, _key: string): Buffer {
-  // Extract embedded private key
-  const privLen = data.readUInt32BE(0);
-  const privKey = data.subarray(4, 4 + privLen).toString();
-  const encrypted = data.subarray(4 + privLen);
-  return crypto.privateDecrypt({ key: privKey, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING }, encrypted);
-}
+export function decryptRSA(data: Buffer, privateKey: string): Buffer {
+  // Handle both PEM format strings and potential passphrases
+  let keyToUse = privateKey;
+  
+  // If the key doesn't look like a PEM private key, treat it as a passphrase
+  // and get the deterministic key pair from it
+  if (!privateKey.includes("BEGIN PRIVATE KEY") && !privateKey.includes("BEGIN RSA PRIVATE KEY")) {
+    const passphraseHash = crypto.createHash('sha256').update(privateKey).digest('hex');
+    const keyPair = rsaKeyCache.get(passphraseHash);
+    
+    if (!keyPair) {
+      throw new Error("No encryption record found for this passphrase. Please encrypt first.");
+    }
+    
+    keyToUse = keyPair.privateKey;
+  }
+  
+  return crypto.privateDecrypt({ key: keyToUse, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING }, data);
+
 
 // Caesar Cipher (text-based, shift = key as number)
 export function encryptCaesar(data: Buffer, key: string): Buffer {
