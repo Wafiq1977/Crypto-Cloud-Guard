@@ -19,10 +19,136 @@ export function decryptAES(data: Buffer, key: string): Buffer {
 }
 
 // RSA encryption (for small data / keys)
-// Cache for deterministic key pair generation from passphrases
-const rsaKeyCache = new Map<string, { publicKey: string; privateKey: string }>();
-
 export function encryptRSA(data: Buffer, publicKey: string): Buffer {
+  // RSA can only encrypt data up to key size minus padding overhead.
+  // For 2048-bit key with OAEP padding, max is 190 bytes (SHA-256) or 214 bytes (SHA-1).
+  // Use a conservative limit of 190 bytes to be safe.
+  const MAX_RSA_DATA_SIZE = 190;
+  if (data.length > MAX_RSA_DATA_SIZE) {
+    throw new Error(`Data too large for RSA encryption. Maximum size is ${MAX_RSA_DATA_SIZE} bytes. Use HybridAES-RSA algorithm for larger data.`);
+  }
+
+  // Determine if the key is a PEM public key
+  const isPemPublicKey = publicKey.includes("BEGIN PUBLIC KEY") || publicKey.includes("BEGIN RSA PUBLIC KEY");
+  
+  if (isPemPublicKey) {
+    // Use the provided PEM public key directly
+    return crypto.publicEncrypt(
+      { key: publicKey, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+      data
+    );
+  } else {
+    // Treat as passphrase: protect a randomly generated RSA key pair
+    // Generate random RSA key pair
+    const { publicKey: pub, privateKey: priv } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const pubPem = pub.export({ type: "spki", format: "pem" });
+    const privPem = priv.export({ type: "pkcs8", format: "pem" });
+    
+    // Encrypt the data with the public key
+    const encryptedData = crypto.publicEncrypt(
+      { key: pubPem, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+      data
+    );
+    
+    // Encrypt the private key PEM using AES with a key derived from the passphrase
+    const encryptedPrivKey = encryptAES(Buffer.from(privPem), publicKey); // reuse the passphrase as key
+    
+    // Output format: [length of encryptedPrivKey (4 bytes BE)] [encryptedPrivKey] [encryptedData]
+    const lenBuf = Buffer.alloc(4);
+    lenBuf.writeUInt32BE(encryptedPrivKey.length, 0);
+    return Buffer.concat([lenBuf, encryptedPrivKey, encryptedData]);
+  }
+}
+
+export function decryptRSA(data: Buffer, privateKey: string): Buffer {
+  // Determine if the key is a PEM private key
+  const isPemPrivateKey = privateKey.includes("BEGIN PRIVATE KEY") || privateKey.includes("BEGIN RSA PRIVATE KEY");
+  
+  if (isPemPrivateKey) {
+    // Use the provided PEM private key directly
+    return crypto.privateDecrypt(
+      { key: privateKey, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+      data
+    );
+  } else {
+    // Treat as passphrase: extract encrypted private key and encrypted data
+    if (data.length < 4) {
+      throw new Error("Invalid encrypted data: too short to contain length of encrypted private key");
+    }
+    const privKeyLen = data.readUInt32BE(0);
+    if (data.length < 4 + privKeyLen) {
+      throw new Error("Invalid encrypted data: too short for encrypted private key");
+    }
+    const encryptedPrivKeyBuf = data.slice(4, 4 + privKeyLen);
+    const encryptedDataBuf = data.slice(4 + privKeyLen);
+    
+    // Decrypt the private key PEM using AES with the passphrase
+    const decryptedPrivKeyBuf = decryptAES(encryptedPrivKeyBuf, privateKey);
+    const privKeyPem = decryptedPrivKeyBuf.toString();
+    
+    // Decrypt the data using the RSA private key
+    return crypto.privateDecrypt(
+      { key: privKeyPem, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+      encryptedDataBuf
+    );
+  }
+}
+
+  // Determine if the key is a PEM public key
+  const isPemPublicKey = publicKey.includes("BEGIN PUBLIC KEY") || publicKey.includes("BEGIN RSA PUBLIC KEY");
+  let keyToUse: Buffer | string = publicKey;
+
+  if (!isPemPublicKey) {
+    // Treat as passphrase: generate a random key pair
+    const { publicKey: pub, privateKey: priv } = crypto.generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const pubPem = pub.export({ type: "spki", format: "pem" });
+    const privPem = priv.export({ type: "pkcs8", format: "pem" });
+    keyToUse = pubPem;
+    // We'll embed the private key PEM in the output
+    const privBuf = Buffer.from(privPem);
+    const lenBuf = Buffer.alloc(4);
+    lenBuf.writeUInt32BE(privBuf.length, 0);
+    const encrypted = crypto.publicEncrypt(
+      { key: keyToUse, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+      data
+    );
+    return Buffer.concat([lenBuf, privBuf, encrypted]);
+  } else {
+    // Use the provided PEM public key directly
+    return crypto.publicEncrypt(
+      { key: keyToUse, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+      data
+    );
+  }
+}
+
+export function decryptRSA(data: Buffer, privateKey: string): Buffer {
+  // Determine if the key is a PEM private key
+  const isPemPrivateKey = privateKey.includes("BEGIN PRIVATE KEY") || privateKey.includes("BEGIN RSA PRIVATE KEY");
+  let keyToUse: Buffer | string = privateKey;
+  let encryptedData: Buffer = data;
+
+  if (!isPemPrivateKey) {
+    // Treat as passphrase: extract embedded private key from data
+    if (data.length < 4) {
+      throw new Error("Invalid encrypted data: too short to contain private key length");
+    }
+    const privLen = data.readUInt32BE(0);
+    if (data.length < 4 + privLen) {
+      throw new Error("Invalid encrypted data: too short for embedded private key");
+    }
+    const privKeyBuf = data.slice(4, 4 + privLen);
+    encryptedData = data.slice(4 + privLen);
+    keyToUse = privKeyBuf.toString(); // PEM string
+  }
+  // else: use the provided PEM private key directly, encryptedData is the whole data
+
+  return crypto.privateDecrypt(
+    { key: keyToUse, padding: crypto.constants.RSA_PKCS1_OAEP_PADDING },
+    encryptedData
+  );
+}
+  
   // Handle both PEM format strings and potential passphrases
   let keyToUse = publicKey;
   
